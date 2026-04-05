@@ -1,0 +1,166 @@
+Звіт з лабораторної роботи
+Тема: Карування та часткове застосування
+Виконав: Пономаренко Олег
+
+Завдання 1. Звичайні функції
+def add(a, b): return a + b
+def multiply(a, b): return a * b
+def power(base, exponent): return base ** exponent
+
+print(add(3, 4))        # 7
+print(multiply(3, 4))   # 12
+print(power(2, 8))      # 256
+Ці функції не є карованими — вони приймають всі аргументи за один виклик.
+
+Завдання 3. Карування функції додавання
+def add_curried(a):
+    def inner(b):
+        return a + b
+    return inner
+
+print(add_curried(2)(3))   # 5
+print(add_curried(10)(5))  # 15
+
+add10 = add_curried(10)
+print(add10(7))    # 17
+print(add10(100))  # 110
+
+Завдання 4. Карування множення
+def multiply_curried(a):
+    def inner(b):
+        return a * b
+    return inner
+
+double = multiply_curried(2)
+triple = multiply_curried(3)
+
+numbers = [1, 2, 3, 4, 5]
+print(list(map(double, numbers)))  # [2, 4, 6, 8, 10]
+print(list(map(triple, numbers)))  # [3, 6, 9, 12, 15]
+
+Завдання 5. Карування з трьома аргументами
+def volume_curried(length):
+    def second(width):
+        def third(height):
+            return length * width * height
+        return third
+    return second
+
+print(volume_curried(2)(3)(4))  # 24
+
+box_base = volume_curried(2)(5)
+print(box_base(10))  # 100
+print(box_base(20))  # 200
+
+Завдання 6. Карування рядкових операцій
+def message_curried(prefix):
+    def inner(name):
+        return f'{prefix}: {name}'
+    return inner
+
+error_message = message_curried('ERROR')
+warning_message = message_curried('WARNING')
+info_message = message_curried('INFO')
+
+print(error_message('File not found'))  # ERROR: File not found
+print(warning_message('Low memory'))    # WARNING: Low memory
+
+Завдання 7. functools.partial
+from functools import partial
+
+def add(a, b): return a + b
+
+add5 = partial(add, 5)
+add10 = partial(add, 10)
+
+print(add5(3))   # 8
+print(add10(7))  # 17
+Відмінність: partial фіксує перші аргументи будь-якої функції; карування — ланцюжок одноаргументних функцій.
+
+Завдання 8. Конвертація валют
+from functools import partial
+
+def convert(amount, rate): return amount * rate
+
+usd_to_uah = partial(convert, rate=40)
+eur_to_uah = partial(convert, rate=43)
+
+print(usd_to_uah(100))  # 4000
+print(eur_to_uah(100))  # 4300
+print(usd_to_uah(250))  # 10000
+
+Завдання 9. Знижки
+def apply_discount(price, percent): return price * (1 - percent)
+
+discount_10 = partial(apply_discount, percent=0.10)
+discount_20 = partial(apply_discount, percent=0.20)
+discount_50 = partial(apply_discount, percent=0.50)
+
+for price in [100, 250, 999]:
+    print(f'{price}: -10%={discount_10(price):.1f}')
+
+Завдання 10. Логування
+def log(level, message): return f'[{level}] {message}'
+
+log_info    = partial(log, 'INFO')
+log_warning = partial(log, 'WARNING')
+log_error   = partial(log, 'ERROR')
+
+print(log_info('Application started'))      # [INFO] Application started
+print(log_warning('Disk space is low'))     # [WARNING] Disk space is low
+print(log_error('Cannot connect to DB'))    # [ERROR] Cannot connect to DB
+
+Завдання 11. Порівняння двох способів
+# Карування:
+def power_curried(base):
+    return lambda exp: base ** exp
+
+square = power_curried(2)  # НЕ те що потрібно — base=2
+
+# Правильно через partial (порядок важливий!):
+from functools import partial
+def power(base, exp): return base ** exp
+
+square_of = lambda x: power(x, 2)
+cube_of   = lambda x: power(x, 3)
+
+print(square_of(4))  # 16
+print(cube_of(3))    # 27
+
+Завдання 14. Functional Pricing Engine
+from functools import partial
+def add_tax(price, tax): return price * (1 + tax)
+def apply_discount(price, discount): return price * (1 - discount)
+def convert_currency(price, rate): return price * rate
+def add_fee(price, fee): return price + fee
+
+tax_20      = partial(add_tax, tax=0.20)
+discount_10 = partial(apply_discount, discount=0.10)
+usd_to_uah  = partial(convert_currency, rate=41)
+fee_50      = partial(add_fee, fee=50)
+
+def pipeline(data, steps):
+    from functools import reduce
+    return [reduce(lambda p, f: f(p), steps, price) for price in data]
+
+prices = [100, 250, 400, 999]
+result = pipeline(prices, [discount_10, tax_20, fee_50, usd_to_uah])
+print(result)
+
+Завдання 17. Власний приклад
+Задача: побудова URL для API-запитів.
+def build_url(base, endpoint, param):
+    return f'{base}/{endpoint}?id={param}'
+
+api_v1 = partial(build_url, 'https://api.example.com/v1')
+users_endpoint = partial(api_v1, 'users')
+
+print(users_endpoint(42))   # https://api.example.com/v1/users?id=42
+print(users_endpoint(100))  # https://api.example.com/v1/users?id=100
+Часткове застосування ідеально для конфігурування URL: база та ендпоінт фіксуються, змінюється лише параметр.
+
+Висновок
+Карування — перетворення функції від N аргументів у ланцюжок функцій від одного аргументу. 
+Часткове застосування — фіксація деяких аргументів функції через functools.partial. 
+Різниця: карування створює ланцюжок однаргументних функцій; partial фіксує конкретні аргументи будь-якої функції. 
+Обидва підходи дозволяють створювати спеціалізовані функції з загальних.
